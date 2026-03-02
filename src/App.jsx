@@ -1,15 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "./router/ProtectedRoute";
 import ToastHost from "./components/ToastHost";
 import LoadingOverlay from "./components/LoadingOverlay";
 import Login from "./pages/auth/Login";
 import RoleRedirect from "./router/RoleRedirect";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-// Driver
-// import DriverLayout from "../pages/driver/DriverLayout";
-// import DriverHome from "../pages/driver/DriverHome";
-// import DriverProfile from "../pages/driver/DriverProfile";
-// import DriverVehicles from "../pages/driver/DriverVehicles";
-// import DriverPenalties from "../pages/driver/DriverPenalties";
+import DriverLayout from "./pages/driver/DriverLayout";
+import DriverHome from "./pages/driver/DriverHome";
+import DriverProfile from "./pages/driver/DriverProfile";
+import DriverPenalties from "./pages/driver/DriverPenalties";
+import DriverVehicles from "./pages/driver/DriverVehicles";
+//Driver
+
 // import DriverPayments from "../pages/driver/DriverPayments";
 // import DriverIncidents from "../pages/driver/DriverIncidents";
 
@@ -50,7 +52,7 @@ export default function App() {
           {/* <Route path="/rescue/register" element={<RescueRegister />} /> */}
 
           {/* Driver */}
-          {/* <Route
+          <Route
             path="/driver"
             element={
               <ProtectedRoute roles={["DRIVER"]}>
@@ -62,9 +64,9 @@ export default function App() {
             <Route path="profile" element={<DriverProfile />} />
             <Route path="vehicles" element={<DriverVehicles />} />
             <Route path="penalties" element={<DriverPenalties />} />
-            <Route path="payments" element={<DriverPayments />} />
-            <Route path="incidents" element={<DriverIncidents />} />
-          </Route> */}
+            {/* <Route path="payments" element={<DriverPayments />} />
+            <Route path="incidents" element={<DriverIncidents />} /> */}
+          </Route>
 
           {/* Officer */}
           {/* <Route
