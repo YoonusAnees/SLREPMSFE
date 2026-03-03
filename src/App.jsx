@@ -10,6 +10,8 @@ import DriverHome from "./pages/driver/DriverHome";
 import DriverProfile from "./pages/driver/DriverProfile";
 import DriverPenalties from "./pages/driver/DriverPenalties";
 import DriverVehicles from "./pages/driver/DriverVehicles";
+import DriverIncidents from "./pages/driver/DriverIncidents";
+import DriverPayment from "./pages/driver/DriverPayment";
 //Driver
 
 // import DriverPayments from "../pages/driver/DriverPayments";
@@ -64,8 +66,8 @@ export default function App() {
             <Route path="profile" element={<DriverProfile />} />
             <Route path="vehicles" element={<DriverVehicles />} />
             <Route path="penalties" element={<DriverPenalties />} />
-            {/* <Route path="payments" element={<DriverPayments />} />
-            <Route path="incidents" element={<DriverIncidents />} /> */}
+            <Route path="payments" element={<DriverPayment />} />
+            <Route path="incidents" element={<DriverIncidents />} />
           </Route>
 
           {/* Officer */}
