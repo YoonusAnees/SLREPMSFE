@@ -21,6 +21,12 @@ import OfficerHome from "./pages/officer/OfficerHome";
 import OfficerIssuePenalty from "./pages/officer/OfficerIssuePenalty";
 import OfficerVerifyVehicle from "./pages/officer/OfficerVerifyVehicle";
 import OfficerViolationTypes from "./pages/officer/OfficerViolationTypes";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminPenalties from "./pages/admin/AdminPenalties";
+import AdminPayments from "./pages/admin/AdminPayments";
+import AdminIncidents from "./pages/admin/AdminIncidents";
 
 // Admin
 // import AdminLayout from "../pages/admin/AdminLayout";
@@ -84,7 +90,7 @@ export default function App() {
           </Route>
 
           {/* Admin */}
-          {/* <Route
+          <Route
             path="/admin"
             element={
               <ProtectedRoute roles={["ADMIN"]}>
@@ -92,9 +98,12 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<AdminHome />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
-          </Route> */}
+            <Route path="penalties" element={<AdminPenalties />} />
+            <Route path="payments" element={<AdminPayments />} />
+            <Route path="incidents" element={<AdminIncidents />} />
+          </Route>
 
           {/* Dispatcher */}
           {/* <Route
