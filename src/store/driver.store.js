@@ -14,7 +14,7 @@ export const useDriverStore = create((set) => ({
     },
 
     updateMyUser: async (payload) => {
-        const { data } = await http.patch("/drivers/me/user", payload);
+        const { data } = await http.put("/drivers/me/update", payload);
         return data;
     },
 
@@ -25,7 +25,7 @@ export const useDriverStore = create((set) => ({
     },
 
     addVehicle: async (payload) => {
-        const { data } = await http.post("/vehicles", payload);
+        const { data } = await http.post("/vehicles/add", payload);
         return data;
     },
 
@@ -43,6 +43,13 @@ export const useDriverStore = create((set) => ({
     loadIncidents: async () => {
         const { data } = await http.get("/incidents/me");
         set({ incidents: data });
+        return data;
+    },
+
+    // POST /drivers/me → add license
+    upsertMe: async (payload) => {
+        const { data } = await http.post("/drivers/me", payload);
+        set({ me: data });
         return data;
     },
 }));

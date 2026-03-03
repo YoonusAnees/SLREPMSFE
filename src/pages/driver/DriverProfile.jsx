@@ -9,12 +9,14 @@ import { useAuthStore } from "../../store/auth.store";
 export default function DriverProfile() {
   const authUser = useAuthStore((s) => s.user);
   const updateMyUser = useDriverStore((s) => s.updateMyUser);
+  const upsertMe = useDriverStore((s) => s.upsertMe);
   const toast = useUIStore((s) => s.toast);
 
   const [form, setForm] = useState({
     name: authUser?.name || "",
     phone: authUser?.phone || "",
     nic: authUser?.nic || "",
+    licenseNo: authUser?.licenseNo || "",
   });
 
   useEffect(() => {
@@ -22,6 +24,7 @@ export default function DriverProfile() {
       name: authUser?.name || "",
       phone: authUser?.phone || "",
       nic: authUser?.nic || "",
+      licenseNo: authUser?.licenseNo || "",
     });
   }, [authUser?.id]);
 
@@ -29,6 +32,7 @@ export default function DriverProfile() {
     setForm((p) => ({ ...p, [k]: v }));
   }
 
+  // Update profile (PUT)
   async function onSave(e) {
     e.preventDefault();
     try {
@@ -38,10 +42,23 @@ export default function DriverProfile() {
         nic: form.nic || undefined,
       });
       toast("success", "Profile updated");
-      // optional: update auth store user
       useAuthStore.setState({ user: { ...authUser, ...updated } });
     } catch (e) {
       toast("error", e?.response?.data?.message || "Update failed");
+    }
+  }
+
+  // Add licenseNo (POST)
+  async function onAddLicense(e) {
+    e.preventDefault();
+    try {
+      const added = await upsertMe({
+        licenseNo: form.licenseNo,
+      });
+      toast("success", "License added");
+      useAuthStore.setState({ user: { ...authUser, ...added } });
+    } catch (e) {
+      toast("error", e?.response?.data?.message || "Adding license failed");
     }
   }
 
@@ -49,6 +66,7 @@ export default function DriverProfile() {
     <div className="space-y-3">
       <h1 className="text-xl font-semibold">My Profile</h1>
 
+      {/* Update Personal Details */}
       <Card
         title="Update Personal Details"
         subtitle="NIC & phone are used for verification"
@@ -74,6 +92,25 @@ export default function DriverProfile() {
           </div>
         </form>
       </Card>
+
+      {/* Add License Number */}
+      {!authUser?.licenseNo && (
+        <Card
+          title="Add License Number"
+          subtitle="License number is required for verification"
+        >
+          <form onSubmit={onAddLicense} className="grid md:grid-cols-2 gap-3">
+            <Input
+              label="License Number"
+              value={form.licenseNo}
+              onChange={(e) => set("licenseNo", e.target.value)}
+            />
+            <div className="md:col-span-2">
+              <Button className="w-full">Add License</Button>
+            </div>
+          </form>
+        </Card>
+      )}
     </div>
   );
 }
