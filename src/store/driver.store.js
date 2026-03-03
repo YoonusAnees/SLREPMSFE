@@ -19,7 +19,7 @@ export const useDriverStore = create((set) => ({
     },
 
     loadVehicles: async () => {
-        const { data } = await http.get("/vehicles/me");
+        const { data } = await http.get("/vehicles/my");
         set({ vehicles: data });
         return data;
     },
@@ -30,7 +30,7 @@ export const useDriverStore = create((set) => ({
     },
 
     loadPenalties: async () => {
-        const { data } = await http.get("/penalties/me");
+        const { data } = await http.get("/penalties/my");
         set({ penalties: data });
         return data;
     },
