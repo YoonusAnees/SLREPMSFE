@@ -5,6 +5,8 @@ import LoadingOverlay from "./components/LoadingOverlay";
 import Login from "./pages/auth/Login";
 import RoleRedirect from "./router/RoleRedirect";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+
+// Driver
 import DriverLayout from "./pages/driver/DriverLayout";
 import DriverHome from "./pages/driver/DriverHome";
 import DriverProfile from "./pages/driver/DriverProfile";
@@ -12,17 +14,13 @@ import DriverPenalties from "./pages/driver/DriverPenalties";
 import DriverVehicles from "./pages/driver/DriverVehicles";
 import DriverIncidents from "./pages/driver/DriverIncidents";
 import DriverPayment from "./pages/driver/DriverPayment";
-//Driver
-
-// import DriverPayments from "../pages/driver/DriverPayments";
-// import DriverIncidents from "../pages/driver/DriverIncidents";
 
 // Officer
-// import OfficerLayout from "../pages/officer/OfficerLayout";
-// import OfficerHome from "../pages/officer/OfficerHome";
-// import OfficerIssuePenalty from "../pages/officer/OfficerIssuePenalty";
-// import OfficerVerifyVehicle from "../pages/officer/OfficerVerifyVehicle";
-// import OfficerViolationTypes from "../pages/officer/OfficerViolationTypes";
+import OfficerLayout from "./pages/officer/OfficerLayout";
+import OfficerHome from "./pages/officer/OfficerHome";
+import OfficerIssuePenalty from "./pages/officer/OfficerIssuePenalty";
+import OfficerVerifyVehicle from "./pages/officer/OfficerVerifyVehicle";
+import OfficerViolationTypes from "./pages/officer/OfficerViolationTypes";
 
 // Admin
 // import AdminLayout from "../pages/admin/AdminLayout";
@@ -71,7 +69,7 @@ export default function App() {
           </Route>
 
           {/* Officer */}
-          {/* <Route
+          <Route
             path="/officer"
             element={
               <ProtectedRoute roles={["OFFICER"]}>
@@ -83,7 +81,7 @@ export default function App() {
             <Route path="issue-penalty" element={<OfficerIssuePenalty />} />
             <Route path="verify-vehicle" element={<OfficerVerifyVehicle />} />
             <Route path="violation-types" element={<OfficerViolationTypes />} />
-          </Route> */}
+          </Route>
 
           {/* Admin */}
           {/* <Route
