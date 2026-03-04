@@ -35,6 +35,7 @@ import RescueDispatches from "./pages/rescue/RescueDispatches";
 import RescueLayout from "./pages/rescue/RescueLayout";
 import RescueProfile from "./pages/rescue/RescueProfile";
 import RescueRegister from "./pages/rescue/RescueRegister";
+import Register from "./pages/auth/Register";
 
 // Admin
 // import AdminLayout from "../pages/admin/AdminLayout";
@@ -60,6 +61,7 @@ export default function App() {
 
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/role" element={<RoleRedirect />} />
 
           {/* Rescue register public */}

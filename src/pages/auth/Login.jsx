@@ -58,7 +58,7 @@ export default function Login() {
 
           <div className="text-sm text-gray-600">
             Rescue team new?{" "}
-            <Link className="underline" to="/rescue/register">
+            <Link className="underline" to="/register">
               Register
             </Link>
           </div>
