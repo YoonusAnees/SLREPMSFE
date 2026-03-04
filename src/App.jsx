@@ -27,6 +27,9 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPenalties from "./pages/admin/AdminPenalties";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminIncidents from "./pages/admin/AdminIncidents";
+import DispatcherLayout from "./pages/dispatcher/DispatcherLayout";
+import DispatcherDashboard from "./pages/dispatcher/DispatcherDashboard";
+import DispatcherIncidents from "./pages/dispatcher/DispatcherIncidents";
 
 // Admin
 // import AdminLayout from "../pages/admin/AdminLayout";
@@ -106,7 +109,7 @@ export default function App() {
           </Route>
 
           {/* Dispatcher */}
-          {/* <Route
+          <Route
             path="/dispatcher"
             element={
               <ProtectedRoute roles={["DISPATCHER"]}>
@@ -114,8 +117,9 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<DispatchCenter />} />
-          </Route> */}
+            <Route index element={<DispatcherDashboard />} />
+            <Route path="incidents" element={<DispatcherIncidents />} />
+          </Route>
 
           {/* Rescue */}
           {/* <Route

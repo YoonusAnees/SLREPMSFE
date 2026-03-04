@@ -1,30 +1,77 @@
 import { create } from "zustand";
 import { http } from "../api/http";
 
-export const useDispatcherStore = create((set) => ({
+export const useDispatcherStore = create((set, get) => ({
     incidents: [],
-    loading: false,
+    loading: {
+        incidents: false,
+        nearest: false,
+        dispatch: false,
+        update: false,
+    },
+    stats: null,
+    myDispatches: [],
     error: null,
 
     loadIncidents: async () => {
-        set({ loading: true, error: null });
+        set((s) => ({ loading: { ...s.loading, incidents: true }, error: null }));
         try {
             const { data } = await http.get("/incidents");
-            set({ incidents: data, loading: false });
+            set((s) => ({ incidents: data, loading: { ...s.loading, incidents: false } }));
             return data;
         } catch (e) {
-            set({ error: e?.response?.data?.message || e.message, loading: false });
+            set((s) => ({
+                error: e?.response?.data?.message || e.message,
+                loading: { ...s.loading, incidents: false },
+            }));
             throw e;
         }
     },
 
-    nearestTeams: async ({ lat, lng, limit = 5 }) => {
-        const { data } = await http.get(`/rescue-teams/nearest`, { params: { lat, lng, limit } });
-        return data;
+    nearestTeams: async ({ lat, lng, limit = 5, maxDistanceMeters = 30000 }) => {
+        set((s) => ({ loading: { ...s.loading, nearest: true }, error: null }));
+        try {
+            const { data } = await http.post("/dispatch/nearest", {
+                lat: Number(lat),
+                lng: Number(lng),
+                limit,
+                maxDistanceMeters,
+            });
+            return data;
+        } finally {
+            set((s) => ({ loading: { ...s.loading, nearest: false } }));
+        }
     },
 
     dispatchTeam: async ({ incidentId, rescueTeamId, notes }) => {
-        const { data } = await http.post("/dispatches", { incidentId, rescueTeamId, notes });
+        set((s) => ({ loading: { ...s.loading, dispatch: true }, error: null }));
+        try {
+            const { data } = await http.post("/dispatch", { incidentId, rescueTeamId, notes });
+            return data;
+        } finally {
+            set((s) => ({ loading: { ...s.loading, dispatch: false } }));
+        }
+    },
+
+    updateDispatchStatus: async ({ dispatchId, status }) => {
+        set((s) => ({ loading: { ...s.loading, update: true }, error: null }));
+        try {
+            const { data } = await http.patch("/dispatch/status", { dispatchId, status });
+            return data;
+        } finally {
+            set((s) => ({ loading: { ...s.loading, update: false } }));
+        }
+    },
+
+    loadStats: async () => {
+        const { data } = await http.get("/dispatch/stats");
+        set({ stats: data });
+        return data;
+    },
+
+    loadMyDispatches: async () => {
+        const { data } = await http.get("/dispatch/me");
+        set({ myDispatches: data });
         return data;
     },
 }));
