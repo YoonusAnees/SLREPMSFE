@@ -1,23 +1,7 @@
 import { create } from "zustand";
 import { http } from "../api/http";
 
-/**
- * Expected backend endpoints (you can rename easily):
- *  GET  /admin/dashboard
- *  GET  /admin/users?page&limit&q&role
- *  GET  /admin/penalties?page&limit&q&status
- *  GET  /admin/payments?page&limit&q&status
- *  GET  /admin/incidents?page&limit&status
- *
- * Response format recommended:
- *  { rows: [...], page: 1, limit: 20, total: 123 }
- *
- * Dashboard:
- *  { kpi: {...}, charts: {...} }
- */
-
 function asPage(res) {
-    // supports either {rows,page,limit,total} OR raw array fallback
     if (Array.isArray(res)) {
         return { rows: res, page: 1, limit: res.length, total: res.length };
     }
@@ -29,7 +13,7 @@ function asPage(res) {
     };
 }
 
-export const useAdminStore = create((set, get) => ({
+export const useAdminStore = create((set) => ({
     // ---- state ----
     dashboard: null,
 
@@ -61,9 +45,7 @@ export const useAdminStore = create((set, get) => ({
     loadUsers: async ({ page = 1, limit = 20, q, role } = {}) => {
         set((s) => ({ loading: { ...s.loading, users: true } }));
         try {
-            const { data } = await http.get("/admin/users", {
-                params: { page, limit, q, role },
-            });
+            const { data } = await http.get("/admin/users", { params: { page, limit, q, role } });
             const paged = asPage(data);
             set({ users: paged });
             return paged;
@@ -75,9 +57,7 @@ export const useAdminStore = create((set, get) => ({
     loadPenalties: async ({ page = 1, limit = 20, q, status } = {}) => {
         set((s) => ({ loading: { ...s.loading, penalties: true } }));
         try {
-            const { data } = await http.get("/admin/penalties", {
-                params: { page, limit, q, status },
-            });
+            const { data } = await http.get("/admin/penalties", { params: { page, limit, q, status } });
             const paged = asPage(data);
             set({ penalties: paged });
             return paged;
@@ -89,9 +69,7 @@ export const useAdminStore = create((set, get) => ({
     loadPayments: async ({ page = 1, limit = 20, q, status } = {}) => {
         set((s) => ({ loading: { ...s.loading, payments: true } }));
         try {
-            const { data } = await http.get("/admin/payments", {
-                params: { page, limit, q, status },
-            });
+            const { data } = await http.get("/admin/payments", { params: { page, limit, q, status } });
             const paged = asPage(data);
             set({ payments: paged });
             return paged;
@@ -103,9 +81,7 @@ export const useAdminStore = create((set, get) => ({
     loadIncidents: async ({ page = 1, limit = 20, status } = {}) => {
         set((s) => ({ loading: { ...s.loading, incidents: true } }));
         try {
-            const { data } = await http.get("/admin/incidents", {
-                params: { page, limit, status },
-            });
+            const { data } = await http.get("/admin/incidents", { params: { page, limit, status } });
             const paged = asPage(data);
             set({ incidents: paged });
             return paged;
@@ -114,7 +90,6 @@ export const useAdminStore = create((set, get) => ({
         }
     },
 
-    // Optional: quick reset (logout etc.)
     resetAdmin: () => {
         set({
             dashboard: null,

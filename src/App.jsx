@@ -98,7 +98,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="penalties" element={<AdminPenalties />} />
             <Route path="payments" element={<AdminPayments />} />

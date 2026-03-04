@@ -1,44 +1,26 @@
-import { NavLink, Outlet } from "react-router-dom";
-
-const linkClass = ({ isActive }) =>
-  `px-3 py-2 rounded-xl text-sm ${
-    isActive ? "bg-black text-white" : "text-gray-700 hover:bg-gray-100"
-  }`;
+import { Outlet } from "react-router-dom";
+import Sidebar from "../../components/Sidebar";
+import Navbar from "../../components/Navbar";
 
 export default function AdminLayout() {
+  const items = [
+    { to: "/admin", label: "Dashboard", end: true },
+    { to: "/admin/users", label: "Users" },
+    { to: "/admin/penalties", label: "Penalties" },
+    { to: "/admin/payments", label: "Payments" },
+    { to: "/admin/incidents", label: "Incidents" },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-lg font-semibold">SLREPMS — Admin</div>
-            <div className="text-xs text-gray-500">
-              Dashboard & system management
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen flex bg-gray-50">
+      <Sidebar items={items} />
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <NavLink to="/admin" end className={linkClass}>
-            Dashboard
-          </NavLink>
-          <NavLink to="/admin/users" className={linkClass}>
-            Users
-          </NavLink>
-          <NavLink to="/admin/penalties" className={linkClass}>
-            Penalties
-          </NavLink>
-          <NavLink to="/admin/payments" className={linkClass}>
-            Payments
-          </NavLink>
-          <NavLink to="/admin/incidents" className={linkClass}>
-            Incidents
-          </NavLink>
-        </div>
+      <div className="flex-1 flex flex-col">
+        <Navbar />
 
-        <div className="mt-4">
+        <main className="p-4">
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
   );
