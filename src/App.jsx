@@ -30,6 +30,11 @@ import AdminIncidents from "./pages/admin/AdminIncidents";
 import DispatcherLayout from "./pages/dispatcher/DispatcherLayout";
 import DispatcherDashboard from "./pages/dispatcher/DispatcherDashboard";
 import DispatcherIncidents from "./pages/dispatcher/DispatcherIncidents";
+import RescueDashboard from "./pages/rescue/RescueDashboard";
+import RescueDispatches from "./pages/rescue/RescueDispatches";
+import RescueLayout from "./pages/rescue/RescueLayout";
+import RescueProfile from "./pages/rescue/RescueProfile";
+import RescueRegister from "./pages/rescue/RescueRegister";
 
 // Admin
 // import AdminLayout from "../pages/admin/AdminLayout";
@@ -106,6 +111,7 @@ export default function App() {
             <Route path="penalties" element={<AdminPenalties />} />
             <Route path="payments" element={<AdminPayments />} />
             <Route path="incidents" element={<AdminIncidents />} />
+            <Route path="register" element={<RescueRegister />} />
           </Route>
 
           {/* Dispatcher */}
@@ -122,7 +128,7 @@ export default function App() {
           </Route>
 
           {/* Rescue */}
-          {/* <Route
+          <Route
             path="/rescue"
             element={
               <ProtectedRoute roles={["RESCUE"]}>
@@ -130,9 +136,10 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<RescueMe />} />
+            <Route index element={<RescueDashboard />} />
             <Route path="dispatches" element={<RescueDispatches />} />
-          </Route> */}
+            <Route path="profile" element={<RescueProfile />} />
+          </Route>
 
           <Route path="/" element={<Navigate to="/role" replace />} />
           <Route path="*" element={<Navigate to="/role" replace />} />
