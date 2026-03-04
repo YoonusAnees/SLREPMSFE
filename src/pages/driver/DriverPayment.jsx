@@ -67,13 +67,7 @@ export default function DriverPayments() {
           </span>
         ),
       },
-      {
-        key: "issuedBy",
-        header: "Officer",
-        render: (r) => (
-          <span className="font-mono text-xs">{r.issuedBy || "-"}</span>
-        ),
-      },
+
       {
         key: "actions",
         header: "Receipt",

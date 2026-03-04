@@ -56,6 +56,21 @@ export default function DriverPenalties() {
       { key: "fineLkr", header: "Fine (LKR)" },
       { key: "demeritPoints", header: "Points" },
       { key: "locationText", header: "Location" },
+      {
+        key: "issuedBy",
+        header: "Officer",
+        render: (r) => (
+          <span className="font-mono text-xs">{r.issuedBy?.email}</span>
+        ),
+      },
+
+      {
+        key: "vehicle",
+        header: "Vehicle",
+        render: (r) => (
+          <span className="font-mono text-xs">{r.vehicle?.plateNo}</span>
+        ),
+      },
 
       {
         key: "actions",
