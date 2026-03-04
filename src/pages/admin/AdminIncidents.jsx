@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useAdminStore } from "../../store/admin.store";
 import { useUIStore } from "../../store/ui.store";
 import Table from "../../components/Table";
+import ImageModal from "../../components/ImageModal";
+import MiniMap from "../../components/MiniMap";
 
 export default function AdminIncidents() {
   const toast = useUIStore((s) => s.toast);
@@ -9,6 +11,7 @@ export default function AdminIncidents() {
   const incidents = useAdminStore((s) => s.incidents);
 
   const [status, setStatus] = useState("");
+  const [zoomImage, setZoomImage] = useState(null);
 
   async function fetch(page = 1) {
     try {
@@ -21,6 +24,21 @@ export default function AdminIncidents() {
   useEffect(() => {
     fetch(1);
   }, []);
+
+  function openGoogleMaps(row) {
+    try {
+      const [lng, lat] = row.baseLocation?.coordinates || [];
+      if (!lat || !lng) return toast("error", "Location missing");
+      window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
+    } catch {
+      toast("error", "Invalid location");
+    }
+  }
+
+  function openEvidence(url) {
+    if (!url) return toast("error", "No evidence");
+    setZoomImage(url);
+  }
 
   const columns = useMemo(
     () => [
@@ -37,7 +55,62 @@ export default function AdminIncidents() {
         header: "Reported By",
         render: (r) => r.reportedBy?.email || "-",
       },
-      { key: "locationText", header: "Location" },
+      {
+        key: "locationText",
+        header: "Location",
+      },
+
+      {
+        key: "evidence",
+        header: "Evidence",
+        render: (r) =>
+          r.evidence ? (
+            <img
+              src={r.evidence}
+              className="w-20 h-20 object-cover rounded cursor-pointer border"
+              onClick={() => openEvidence(r.evidence)}
+            />
+          ) : (
+            <span className="text-xs text-gray-500">No Image</span>
+          ),
+      },
+
+      {
+        key: "mapPreview",
+        header: "Map",
+        render: (r) => {
+          const [lng, lat] = r.baseLocation?.coordinates || [];
+
+          if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) {
+            return <span className="text-xs text-gray-500">No location</span>;
+          }
+          return (
+            <a
+              href={`https://www.google.com/maps?q=${lat},${lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="block"
+            >
+              <div className="w-[200px] h-[130px] rounded-lg overflow-hidden border hover:opacity-90">
+                <MiniMap lat={lat} lng={lng} />
+              </div>
+            </a>
+          );
+        },
+      },
+
+      {
+        key: "view",
+        header: "Actions",
+        render: (r) => (
+          <button
+            className="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs"
+            onClick={() => openGoogleMaps(r)}
+          >
+            View Maps
+          </button>
+        ),
+      },
     ],
     [],
   );
@@ -93,6 +166,9 @@ export default function AdminIncidents() {
           </button>
         </div>
       </div>
+
+      {/* IMAGE VIEWER MODAL */}
+      <ImageModal url={zoomImage} onClose={() => setZoomImage(null)} />
     </div>
   );
 }
