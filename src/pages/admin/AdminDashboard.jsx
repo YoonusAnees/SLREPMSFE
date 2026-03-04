@@ -128,7 +128,7 @@ export default function AdminDashboard() {
           badge="Paid"
         />
         <StatCard
-          label="Revenue (LKR)"
+          label="Paid Penalties (LKR)"
           value={money(kpi.revenueLkr)}
           badge="Total"
         />
@@ -312,7 +312,7 @@ export default function AdminDashboard() {
 
               {/* Paid penalties */}
               <div className="flex items-center justify-between border rounded-xl p-3">
-                <span className="text-gray-600">Paid penalties</span>
+                <span className="text-gray-600">Resolved penalties</span>
                 <span className="px-3 py-1 rounded-full border bg-green-50 text-green-700">
                   {money(
                     penaltySplit.find((x) => x.name === "PAID")?.value || 0,
@@ -322,26 +322,43 @@ export default function AdminDashboard() {
 
               {/* Open incidents */}
               <div className="flex items-center justify-between border rounded-xl p-3">
-                <span className="text-gray-600">Open incidents</span>
+                <span className="text-gray-600">Active road incidents</span>
                 <span className="px-3 py-1 rounded-full border bg-red-50 text-red-700">
                   {money(kpi.openIncidents)}
                 </span>
               </div>
 
-              {/* Active rescue teams */}
+              {/* Rescue teams */}
               <div className="flex items-center justify-between border rounded-xl p-3">
-                <span className="text-gray-600">Active rescue teams</span>
+                <span className="text-gray-600">Available rescue teams</span>
                 <span className="px-3 py-1 rounded-full border bg-blue-50 text-blue-700">
                   {money(kpi.activeRescueTeams)}
                 </span>
               </div>
 
-              {/* System status */}
+              {/* Enforcement indicator */}
               <div className="flex items-center justify-between border rounded-xl p-3">
-                <span className="text-gray-600">System status</span>
-                <span className="px-3 py-1 rounded-full border bg-green-50 text-green-700">
-                  Operational
+                <span className="text-gray-600">Driver compliance rate</span>
+                <span className="px-3 py-1 rounded-full border bg-gray-50 text-gray-800">
+                  {Math.max(
+                    0,
+                    100 -
+                      Math.round(
+                        ((penaltySplit.find((x) => x.name === "UNPAID")
+                          ?.value || 0) /
+                          (kpi.totalDrivers || 1)) *
+                          100,
+                      ),
+                  )}
+                  %
                 </span>
+              </div>
+
+              {/* Road safety message */}
+              <div className="text-xs text-gray-500 border rounded-xl p-3 bg-gray-50">
+                Road safety monitoring panel. High unpaid penalties or frequent
+                incidents may indicate enforcement gaps or high-risk driving
+                areas.
               </div>
             </div>
           </div>
