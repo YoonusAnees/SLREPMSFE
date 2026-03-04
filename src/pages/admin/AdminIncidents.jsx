@@ -76,6 +76,30 @@ export default function AdminIncidents() {
       },
 
       {
+        key: "mapPreview",
+        header: "Map",
+        render: (r) => {
+          const [lng, lat] = r.baseLocation?.coordinates || [];
+
+          if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) {
+            return <span className="text-xs text-gray-500">No location</span>;
+          }
+          return (
+            <a
+              href={`https://www.google.com/maps?q=${lat},${lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="block"
+            >
+              <div className="w-[200px] h-[130px] rounded-lg overflow-hidden border hover:opacity-90">
+                <MiniMap lat={lat} lng={lng} />
+              </div>
+            </a>
+          );
+        },
+      },
+
+      {
         key: "view",
         header: "Actions",
         render: (r) => (
