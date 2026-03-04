@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { http } from "../api/http";
 
-export const useDispatcherStore = create((set, get) => ({
+export const useDispatcherStore = create((set) => ({
     incidents: [],
     loading: {
         incidents: false,
@@ -28,6 +28,7 @@ export const useDispatcherStore = create((set, get) => ({
         }
     },
 
+    // ✅ correct path: /dispatches/nearest
     nearestTeams: async ({ lat, lng, limit = 5, maxDistanceMeters = 30000 }) => {
         set((s) => ({ loading: { ...s.loading, nearest: true }, error: null }));
         try {
@@ -43,6 +44,7 @@ export const useDispatcherStore = create((set, get) => ({
         }
     },
 
+    // ✅ correct path: /dispatches
     dispatchTeam: async ({ incidentId, rescueTeamId, notes }) => {
         set((s) => ({ loading: { ...s.loading, dispatch: true }, error: null }));
         try {
@@ -53,6 +55,7 @@ export const useDispatcherStore = create((set, get) => ({
         }
     },
 
+    // ✅ correct path: /dispatches/status
     updateDispatchStatus: async ({ dispatchId, status }) => {
         set((s) => ({ loading: { ...s.loading, update: true }, error: null }));
         try {
@@ -63,12 +66,14 @@ export const useDispatcherStore = create((set, get) => ({
         }
     },
 
+    // ✅ correct path: /dispatches/stats
     loadStats: async () => {
         const { data } = await http.get("/dispatch/stats");
         set({ stats: data });
         return data;
     },
 
+    // ✅ dispatcher “me” (dispatches created by this dispatcher)
     loadMyDispatches: async () => {
         const { data } = await http.get("/dispatch/me");
         set({ myDispatches: data });
