@@ -1,29 +1,24 @@
 // src/pages/auth/Register.jsx
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Card from "../../components/Card";
-import Input from "../../components/Input";
-import Button from "../../components/Button";
 import { useUIStore } from "../../store/ui.store";
 import { useAuthStore } from "../../store/auth.store";
 
 const ROLES = [
   { value: "DRIVER", label: "Driver" },
-  //   { value: "OFFICER", label: "Officer" },
-  //   { value: "DISPATCHER", label: "Dispatcher" },
-  //   { value: "ADMIN", label: "Admin" },
-  // If you also want to create RESCUE users here, uncomment:
+  // { value: "OFFICER", label: "Officer" },
+  // { value: "DISPATCHER", label: "Dispatcher" },
+  // { value: "ADMIN", label: "Admin" },
   // { value: "RESCUE", label: "Rescue" },
 ];
 
 export default function Register() {
-  const nav = useNavigate();
+  const navigate = useNavigate();
   const toast = useUIStore((s) => s.toast);
+  const setLoadingGlobal = useUIStore((s) => s.setLoading);
 
   const accessToken = useAuthStore((s) => s.accessToken);
   const hydrateMe = useAuthStore((s) => s.hydrateMe);
-
-  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -34,35 +29,39 @@ export default function Register() {
     nic: "",
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const canGoDashboard = useMemo(() => !!accessToken, [accessToken]);
 
-  function setField(k, v) {
-    setForm((p) => ({ ...p, [k]: v }));
-  }
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-  async function onSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    try {
-      setLoading(true);
+    if (isSubmitting) return;
 
+    setIsSubmitting(true);
+    setLoadingGlobal(true);
+
+    try {
       const name = form.name.trim();
-      const email = form.email.trim();
+      const email = form.email.trim().toLowerCase();
       const password = form.password;
       const role = form.role;
 
-      if (!name) return toast("error", "Name is required");
-      if (!email) return toast("error", "Email is required");
+      if (!name) throw new Error("Full name is required");
+      if (!email) throw new Error("Email is required");
       if (!password || password.length < 8)
-        return toast("error", "Password must be at least 8 characters");
+        throw new Error("Password must be at least 8 characters");
 
-      // Optional: basic checks
       if (form.nic && form.nic.trim().length < 5) {
-        return toast("error", "NIC looks too short");
+        throw new Error("NIC number appears too short");
       }
 
-      await (
-        await import("../../api/http")
-      ).http.post("/auth/register", {
+      const { http } = await import("../../api/http");
+
+      await http.post("/auth/register", {
         name,
         email,
         role,
@@ -71,105 +70,208 @@ export default function Register() {
         nic: form.nic.trim() || undefined,
       });
 
-      toast("success", "User registered");
+      toast("success", "Account created successfully");
 
-      // If you are already logged in, refresh "me" and go back
       if (canGoDashboard) {
         try {
           await hydrateMe();
         } catch {}
-        nav(-1);
-        return;
+        navigate(-1);
+      } else {
+        navigate("/login");
       }
-
-      // Otherwise go to login page
-      nav("/login");
     } catch (err) {
-      toast(
-        "error",
-        err?.response?.data?.message || err?.message || "Register failed",
-      );
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Registration failed. Please try again.";
+      toast("error", msg);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
+      setLoadingGlobal(false);
     }
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-3">
-      <div>
-        <h1 className="text-xl font-semibold">Register User</h1>
-        <p className="text-sm text-gray-600"></p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center p-5 sm:p-8 relative overflow-hidden">
+      {/* Subtle background effects */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,#4f46e5_0%,transparent_40%),radial-gradient(circle_at_80%_70%,#7c3aed_0%,transparent_35%)]" />
       </div>
 
-      <Card title="User Details" subtitle="Fill the details and register">
-        <form onSubmit={onSubmit} className="grid md:grid-cols-2 gap-3">
-          <Input
-            label="Full name"
-            value={form.name}
-            onChange={(e) => setField("name", e.target.value)}
-            placeholder="e.g., Shahl Farook"
-          />
+      {/* Faint road lines */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute h-px w-full bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent top-[30%] animate-pulse-slow" />
+        <div className="absolute h-px w-full bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent top-[70%] animate-pulse-slow delay-1500" />
+      </div>
 
-          <Input
-            label="Email"
-            value={form.email}
-            onChange={(e) => setField("email", e.target.value)}
-            placeholder="name@email.com"
-          />
+      <div className="w-full max-w-2xl relative z-10">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+            SLREPSMS Registration
+          </h1>
+          <p className="mt-2 text-indigo-200/90 text-lg font-medium">
+            Road Safety • Traffic Enforcement • Emergency Personnel
+          </p>
+        </div>
 
-          <Input
-            label="Password"
-            type="password"
-            value={form.password}
-            onChange={(e) => setField("password", e.target.value)}
-            placeholder="Min 8 characters"
-          />
-
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Role</label>
-            <select
-              className="w-full border rounded-xl px-3 py-2 text-sm"
-              value={form.role}
-              onChange={(e) => setField("role", e.target.value)}
-            >
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-            <div className="text-xs text-gray-500"></div>
+        {/* Form Card */}
+        <div className="bg-slate-900/65 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-700/70 via-purple-800/60 to-indigo-700/70 px-8 py-6 text-center relative">
+            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[conic-gradient(at_top_right,_#4f46e5,_transparent_120deg)]" />
+            <h2 className="text-2xl font-semibold text-white">
+              Create New User Account
+            </h2>
+            <p className="text-indigo-200/80 mt-1.5 text-sm">
+              For drivers, officers, dispatchers & rescue personnel
+            </p>
           </div>
 
-          <Input
-            label="Phone (optional)"
-            value={form.phone}
-            onChange={(e) => setField("phone", e.target.value)}
-            placeholder="+94..."
-          />
+          <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
+            <div className="grid sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  required
+                  value={form.name}
+                  onChange={(e) => updateField("name", e.target.value)}
+                  placeholder="e.g. Mohamed Yoonus"
+                  className="w-full px-4 py-3.5 bg-slate-800/60 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200"
+                />
+              </div>
 
-          <Input
-            label="NIC (optional)"
-            value={form.nic}
-            onChange={(e) => setField("nic", e.target.value)}
-            placeholder="e.g., 200012345678 / 123456789V"
-          />
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Email / Official Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) => updateField("email", e.target.value)}
+                  placeholder="you@slreps.gov.lk"
+                  className="w-full px-4 py-3.5 bg-slate-800/60 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200"
+                />
+              </div>
 
-          <div className="md:col-span-2 flex gap-2 justify-end pt-2">
-            <button
-              type="button"
-              className="px-4 py-2 rounded-xl border"
-              onClick={() => nav(-1)}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Registering..." : "Register"}
-            </Button>
-          </div>
-        </form>
-      </Card>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={form.password}
+                  onChange={(e) => updateField("password", e.target.value)}
+                  placeholder="Minimum 8 characters"
+                  className="w-full px-4 py-3.5 bg-slate-800/60 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Role
+                </label>
+                <select
+                  required
+                  value={form.role}
+                  onChange={(e) => updateField("role", e.target.value)}
+                  className="w-full px-4 py-3.5 bg-slate-800/60 border border-slate-600 rounded-lg text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200 appearance-none"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Phone Number (optional)
+                </label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => updateField("phone", e.target.value)}
+                  placeholder="+94 77 123 4567"
+                  className="w-full px-4 py-3.5 bg-slate-800/60 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  NIC Number (optional)
+                </label>
+                <input
+                  value={form.nic}
+                  onChange={(e) =>
+                    updateField("nic", e.target.value.toUpperCase())
+                  }
+                  placeholder="200012345678 / 123456789V"
+                  className="w-full px-4 py-3.5 bg-slate-800/60 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200 uppercase"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-end pt-4">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                disabled={isSubmitting}
+                className="px-6 py-3 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800/50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`
+                  px-8 py-3 rounded-lg font-semibold shadow-lg transition-all duration-300
+                  ${
+                    isSubmitting
+                      ? "bg-slate-700 cursor-not-allowed text-slate-400"
+                      : "bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white shadow-indigo-600/30 hover:shadow-indigo-700/40"
+                  }
+                `}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2.5">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      />
+                    </svg>
+                    Creating Account...
+                  </span>
+                ) : (
+                  "Register Account"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <p className="text-center text-xs text-slate-500 mt-8">
+          SLREPSMS • Authorized Personnel Only • © {new Date().getFullYear()}
+        </p>
+      </div>
     </div>
   );
 }

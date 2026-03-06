@@ -2,7 +2,7 @@ import axios from "axios";
 import { useAuthStore } from "../store/auth.store";
 import { useUIStore } from "../store/ui.store";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:4000/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://192.168.1.6:4000/api";
 
 export const http = axios.create({
     baseURL: API_BASE,

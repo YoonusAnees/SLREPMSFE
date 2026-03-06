@@ -1,19 +1,17 @@
 // src/pages/rescue/RescueRegister.jsx
 import { useEffect, useMemo, useState } from "react";
-import Card from "../../components/Card";
-import Input from "../../components/Input";
-import Button from "../../components/Button";
-import MapPicker from "../../map/MapPicker";
-import { SL_CITIES } from "../../map/slCities";
 import { useUIStore } from "../../store/ui.store";
 import { useRescueStore } from "../../store/rescue.store";
+import MapPicker from "../../map/MapPicker";
+import { SL_CITIES } from "../../map/slCities";
 
-// Optional reverse-geocode helper (same as DriverIncidents)
+// Optional reverse-geocode helper
 async function reverseGeocode(lat, lng) {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
     );
+    if (!res.ok) return "";
     const json = await res.json();
     return json.display_name || "";
   } catch {
@@ -49,46 +47,50 @@ export default function RescueRegister() {
     baseLocationText: "",
   });
 
-  function setField(k, v) {
-    setForm((p) => ({ ...p, [k]: v }));
-  }
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-  // Keep point synced when city changes
+  // Sync map center when city preset changes
   useEffect(() => {
     setPoint({ lat: cityObj.lat, lng: cityObj.lng });
-  }, [cityObj.lat, cityObj.lng]);
+  }, [cityObj]);
 
-  // Auto-fill baseLocationText when map moves
+  // Auto-reverse geocode when marker moves
   useEffect(() => {
-    const run = async () => {
+    let isCurrent = true;
+    const update = async () => {
       const lat = Number(point.lat);
       const lng = Number(point.lng);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
       const addr = await reverseGeocode(lat, lng);
-      setForm((prev) => ({
-        ...prev,
-        baseLocationText: addr || prev.baseLocationText,
-      }));
+      if (isCurrent) {
+        updateField("baseLocationText", addr || cityObj.name);
+      }
     };
-    run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [point.lat, point.lng]);
+    update();
 
-  async function onSubmit(e) {
+    return () => {
+      isCurrent = false;
+    };
+  }, [point.lat, point.lng, cityObj.name]);
+
+  async function handleSubmit(e) {
     e.preventDefault();
+
+    const baseLat = Number(point.lat);
+    const baseLng = Number(point.lng);
+
+    if (!form.name.trim()) return toast("error", "Team name is required");
+    if (!form.email.trim()) return toast("error", "Email is required");
+    if (!form.password || form.password.length < 8)
+      return toast("error", "Password must be at least 8 characters");
+    if (!form.teamCode.trim()) return toast("error", "Team code is required");
+    if (!Number.isFinite(baseLat) || !Number.isFinite(baseLng))
+      return toast("error", "Please select a valid base location on the map");
+
     try {
-      const baseLat = Number(point.lat);
-      const baseLng = Number(point.lng);
-
-      if (!form.name.trim()) return toast("error", "Name is required");
-      if (!form.email.trim()) return toast("error", "Email is required");
-      if (!form.password || form.password.length < 8)
-        return toast("error", "Password must be at least 8 characters");
-      if (!form.teamCode.trim()) return toast("error", "Team code is required");
-      if (!Number.isFinite(baseLat) || !Number.isFinite(baseLng))
-        return toast("error", "Invalid map location");
-
       await rescueRegister({
         name: form.name.trim(),
         email: form.email.trim(),
@@ -100,8 +102,9 @@ export default function RescueRegister() {
         baseLocationText: form.baseLocationText.trim() || cityObj.name,
       });
 
-      toast("success", "Rescue team registered");
+      toast("success", "Rescue team registered successfully");
 
+      // Reset form
       setForm({
         name: "",
         email: "",
@@ -112,132 +115,258 @@ export default function RescueRegister() {
       });
       setCity(defaultCity.name);
       setPoint({ lat: defaultCity.lat, lng: defaultCity.lng });
-    } catch (e2) {
-      toast(
-        "error",
-        e2?.response?.data?.message || e2?.message || "Register failed",
-      );
+    } catch (err) {
+      toast("error", err?.response?.data?.message || "Registration failed");
     }
   }
 
   return (
-    <div className="space-y-3">
-      <div>
-        <h1 className="text-xl font-semibold">Register Rescue Team</h1>
-        <p className="text-sm text-gray-600">
-          Create a RESCUE user + rescue team profile with base location.
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="text-center sm:text-left">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+            Register Rescue Team
+          </h1>
+          <p className="mt-3 text-slate-300 text-lg">
+            Create a new RESCUE account and set your team's base location
+          </p>
+        </div>
 
-      <Card
-        title="Team Details"
-        subtitle="Fill details and pin the base location"
-      >
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* LEFT: FORM */}
-          <form onSubmit={onSubmit} className="space-y-3">
-            <Input
-              label="Team Name"
-              value={form.name}
-              onChange={(e) => setField("name", e.target.value)}
-              placeholder="e.g., Colombo Rescue Unit"
-            />
+        {/* Main Form Card */}
+        <div className="bg-slate-900/75 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
+          <div className="px-6 py-6 md:px-8 md:py-8 border-b border-slate-700/50 bg-gradient-to-r from-red-950/30 to-slate-950/40">
+            <h2 className="text-2xl font-semibold text-red-300 flex items-center gap-3">
+              <span className="text-3xl">🛡️</span>
+              Rescue Team Registration
+            </h2>
+            <p className="mt-2 text-slate-400">
+              Fill team details and pin your primary base/station location on
+              the map
+            </p>
+          </div>
 
-            <Input
-              label="Email"
-              value={form.email}
-              onChange={(e) => setField("email", e.target.value)}
-              placeholder="team@email.com"
-            />
+          <div className="p-6 md:p-8">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+              {/* LEFT: Form */}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Team Name
+                    </label>
+                    <input
+                      required
+                      value={form.name}
+                      onChange={(e) => updateField("name", e.target.value)}
+                      placeholder="e.g. Kandy Central Rescue Unit"
+                      className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
+                    />
+                  </div>
 
-            <Input
-              label="Password"
-              type="password"
-              value={form.password}
-              onChange={(e) => setField("password", e.target.value)}
-              placeholder="Min 8 characters"
-            />
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Official Email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={form.email}
+                      onChange={(e) => updateField("email", e.target.value)}
+                      placeholder="rescue.kandy@slreps.lk"
+                      className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
+                    />
+                  </div>
+                </div>
 
-            <Input
-              label="Team Code"
-              value={form.teamCode}
-              onChange={(e) => setField("teamCode", e.target.value)}
-              placeholder="e.g., RT-COLOMBO-01"
-            />
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      value={form.password}
+                      onChange={(e) => updateField("password", e.target.value)}
+                      placeholder="Minimum 8 characters"
+                      className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
+                    />
+                  </div>
 
-            <Input
-              label="Phone (optional)"
-              value={form.phone}
-              onChange={(e) => setField("phone", e.target.value)}
-              placeholder="+94..."
-            />
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Unique Team Code
+                    </label>
+                    <input
+                      required
+                      value={form.teamCode}
+                      onChange={(e) =>
+                        updateField("teamCode", e.target.value.toUpperCase())
+                      }
+                      placeholder="e.g. RT-KDY-001"
+                      className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all uppercase font-mono tracking-wide"
+                    />
+                  </div>
+                </div>
 
-            <Input
-              label="Base Location Text (auto-filled)"
-              value={form.baseLocationText}
-              onChange={(e) => setField("baseLocationText", e.target.value)}
-              placeholder="Auto filled from map"
-            />
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                    Contact Phone (optional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => updateField("phone", e.target.value)}
+                    placeholder="+94 77 123 4567"
+                    className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
+                  />
+                </div>
 
-            <Button className="w-full" disabled={!!loading}>
-              {loading ? "Registering..." : "Register Rescue Team"}
-            </Button>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                    Base Location (auto-filled from map)
+                  </label>
+                  <input
+                    value={form.baseLocationText}
+                    onChange={(e) =>
+                      updateField("baseLocationText", e.target.value)
+                    }
+                    placeholder="Auto-filled from map pin"
+                    className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
+                  />
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    Coordinates: {Number(point.lat).toFixed(6)},{" "}
+                    {Number(point.lng).toFixed(6)}
+                  </p>
+                </div>
 
-            <div className="text-xs text-gray-500">
-              After registering, team status defaults to <b>AVAILABLE</b>.
-            </div>
-          </form>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`
+                    w-full py-4 px-8 rounded-xl font-semibold text-base
+                    transition-all duration-300 shadow-lg
+                    ${
+                      loading
+                        ? "bg-slate-700 cursor-not-allowed text-slate-400"
+                        : "bg-red-700 hover:bg-red-600 active:bg-red-800 text-white shadow-red-900/40 hover:shadow-red-800/50"
+                    }
+                  `}
+                >
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8z"
+                        />
+                      </svg>
+                      Registering Team...
+                    </div>
+                  ) : (
+                    "Register Rescue Team"
+                  )}
+                </button>
 
-          {/* RIGHT: MAP */}
-          <div className="space-y-2">
-            <div className="rounded-xl border p-3 space-y-2">
-              <label className="text-sm font-medium">City Preset</label>
-              <select
-                className="w-full border rounded-lg px-3 py-2"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-              >
-                {SL_CITIES.map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                <p className="text-xs text-slate-500 text-center">
+                  After registration, team status defaults to{" "}
+                  <span className="text-green-400 font-medium">AVAILABLE</span>.
+                </p>
+              </form>
 
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  label="Latitude"
-                  value={point.lat}
-                  onChange={(e) =>
-                    setPoint((prev) => ({ ...prev, lat: e.target.value }))
-                  }
-                />
-                <Input
-                  label="Longitude"
-                  value={point.lng}
-                  onChange={(e) =>
-                    setPoint((prev) => ({ ...prev, lng: e.target.value }))
-                  }
-                />
+              {/* RIGHT: Map Section */}
+              <div className="space-y-6">
+                <div className="bg-slate-950/50 border border-slate-700/60 rounded-xl p-5 space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Nearest City (preset)
+                    </label>
+                    <select
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
+                    >
+                      {SL_CITIES.map((c) => (
+                        <option key={c.name} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1.5">
+                        Latitude
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={point.lat}
+                        onChange={(e) =>
+                          setPoint((p) => ({ ...p, lat: e.target.value }))
+                        }
+                        className="w-full px-4 py-3 bg-slate-800/70 border border-slate-600 rounded-lg text-white text-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/30"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1.5">
+                        Longitude
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={point.lng}
+                        onChange={(e) =>
+                          setPoint((p) => ({ ...p, lng: e.target.value }))
+                        }
+                        className="w-full px-4 py-3 bg-slate-800/70 border border-slate-600 rounded-lg text-white text-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/30"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Map Container */}
+                <div
+                  className="
+                    rounded-xl overflow-hidden border-2 border-slate-700/70
+                    shadow-inner shadow-black/50
+                  "
+                >
+                  <MapPicker
+                    value={point}
+                    onChange={setPoint}
+                    center={{ lat: cityObj.lat, lng: cityObj.lng }}
+                    zoom={12}
+                    height="420px"
+                  />
+                </div>
+
+                <div className="text-xs text-slate-500 text-center">
+                  Pin your team's main base/station location
+                </div>
               </div>
-            </div>
-
-            <div className="rounded-xl border overflow-hidden">
-              <MapPicker
-                value={point}
-                onChange={setPoint}
-                center={{ lat: cityObj.lat, lng: cityObj.lng }}
-                zoom={11}
-                height={360}
-              />
-            </div>
-
-            <div className="text-xs text-gray-500">
-              {Number(point.lat).toFixed(5)}, {Number(point.lng).toFixed(5)}
             </div>
           </div>
         </div>
-      </Card>
+
+        {/* Footer note */}
+        <p className="text-center text-sm text-slate-500 mt-6">
+          All rescue team registrations are reviewed by admin before activation
+        </p>
+      </div>
     </div>
   );
 }
