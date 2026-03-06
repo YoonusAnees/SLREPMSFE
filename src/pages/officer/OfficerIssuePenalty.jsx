@@ -1,22 +1,21 @@
+// src/pages/officer/OfficerIssuePenalty.jsx
 import { useEffect, useMemo, useState } from "react";
-import Card from "../../components/Card";
-import Input from "../../components/Input";
-import Button from "../../components/Button";
 import { useOfficerStore } from "../../store/officer.store";
 import { useUIStore } from "../../store/ui.store";
 import { useDebounce } from "../../utils/useDebounce";
 
 function Badge({ children, tone = "gray" }) {
   const tones = {
-    gray: "bg-gray-100 text-gray-800 border-gray-200",
-    green: "bg-green-100 text-green-800 border-green-200",
-    red: "bg-red-100 text-red-800 border-red-200",
-    yellow: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    blue: "bg-blue-100 text-blue-800 border-blue-200",
+    gray: "bg-slate-700/50 text-slate-300 border-slate-600/50",
+    green: "bg-green-900/50 text-green-300 border-green-700/50",
+    red: "bg-red-900/50 text-red-300 border-red-700/50 animate-pulse",
+    yellow: "bg-amber-900/50 text-amber-300 border-amber-700/50",
+    blue: "bg-indigo-900/50 text-indigo-300 border-indigo-700/50",
   };
+
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 text-xs border rounded-full ${tones[tone]}`}
+      className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full border ${tones[tone]}`}
     >
       {children}
     </span>
@@ -41,283 +40,391 @@ export default function OfficerIssuePenalty() {
     plateNo: "",
     violationCode: "",
     locationText: "",
-    occurredAt: new Date().toISOString(),
+    occurredAt: new Date().toISOString().slice(0, 16), // better default for datetime-local
     notes: "",
   });
 
-  function set(k, v) {
-    setForm((p) => ({ ...p, [k]: v }));
-  }
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   useEffect(() => {
     loadViolationTypes().catch(() => {});
   }, [loadViolationTypes]);
 
-  // ✅ debounce license lookup
-  const debouncedLicense = useDebounce(form.licenseNo, 600);
+  // Debounced license lookup
+  const debouncedLicense = useDebounce(form.licenseNo.trim(), 600);
 
   useEffect(() => {
-    const lic = (debouncedLicense || "").trim();
-    if (lic.length < 5) {
+    if (debouncedLicense.length < 5) {
       clearLookup();
       return;
     }
-
-    lookupDriverByLicense(lic).catch(() => {});
+    lookupDriverByLicense(debouncedLicense).catch(() => {});
   }, [debouncedLicense, lookupDriverByLicense, clearLookup]);
 
-  // ✅ when lookup returns vehicles and plate is empty → auto-fill first vehicle
+  // Auto-select first vehicle if none chosen
   useEffect(() => {
     if (!lookedUp?.vehicles?.length) return;
-    if (form.plateNo && form.plateNo.trim()) return;
-    set("plateNo", lookedUp.vehicles[0].plateNo);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (form.plateNo.trim()) return;
+    updateField("plateNo", lookedUp.vehicles[0].plateNo);
   }, [lookedUp]);
 
-  async function onSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
     if (!lookedUp?.driver?.licenseNo) {
-      toast(
-        "error",
-        "Please enter a valid license number and load driver details first.",
-      );
-      return;
+      return toast("error", "Please load valid driver details first");
     }
 
     try {
       await issuePenalty({
         licenseNo: form.licenseNo.trim(),
-        plateNo: form.plateNo?.trim() ? form.plateNo.trim() : undefined,
+        plateNo: form.plateNo.trim() || undefined,
         violationCode: form.violationCode,
-        locationText: form.locationText,
+        locationText: form.locationText.trim() || undefined,
         occurredAt: form.occurredAt,
-        notes: form.notes?.trim() ? form.notes.trim() : undefined,
+        notes: form.notes.trim() || undefined,
       });
 
-      toast("success", "Penalty issued");
+      toast("success", "Penalty issued successfully");
 
-      // optionally clear only some fields
-      setForm((p) => ({
-        ...p,
+      // Reset form (keep license for consecutive issuance)
+      setForm((prev) => ({
+        ...prev,
         plateNo: "",
         violationCode: "",
         locationText: "",
         notes: "",
-        occurredAt: new Date().toISOString(),
+        occurredAt: new Date().toISOString().slice(0, 16),
       }));
-    } catch (e2) {
-      toast("error", e2?.response?.data?.message || "Failed to issue penalty");
+    } catch (err) {
+      toast("error", err?.response?.data?.message || "Failed to issue penalty");
     }
   }
 
   const vehicles = lookedUp?.vehicles || [];
 
   const statusTone =
-    lookedUp?.driver?.licenseStatus === "SUSPENDED" ? "red" : "green";
+    lookedUp?.driver?.licenseStatus === "SUSPENDED" ||
+    lookedUp?.driver?.licenseStatus === "REVOKED"
+      ? "red"
+      : lookedUp?.driver?.licenseStatus === "ACTIVE"
+        ? "green"
+        : "yellow";
 
   const pointsTone =
-    (lookedUp?.driver?.currentPoints ?? 0) === 0 ? "red" : "blue";
-
-  const violationOptions = useMemo(() => {
-    // Keep a default placeholder
-    if (!violationTypes?.length) return [];
-    return violationTypes;
-  }, [violationTypes]);
+    (lookedUp?.driver?.currentPoints ?? 0) >= 12
+      ? "red"
+      : (lookedUp?.driver?.currentPoints ?? 0) >= 8
+        ? "orange"
+        : "green";
 
   return (
-    <div className="space-y-3">
-      <h1 className="text-xl font-semibold">Issue Penalty</h1>
-
-      {/* ✅ Driver Preview */}
-      <Card
-        title="Driver Lookup"
-        subtitle="Enter license number to fetch driver + vehicles"
-      >
-        <div className="grid md:grid-cols-2 gap-3">
-          <Input
-            label="License No"
-            value={form.licenseNo}
-            onChange={(e) => set("licenseNo", e.target.value)}
-            placeholder="e.g., B1234567"
-          />
-
-          <div className="flex items-end gap-2">
-            <div className="text-sm text-gray-600">
-              {lookupLoading ? "Searching…" : lookupError ? "" : ""}
-            </div>
-            {lookupLoading ? <Badge tone="yellow">Loading</Badge> : null}
-            {lookupError ? <Badge tone="red">{lookupError}</Badge> : null}
-            {lookedUp?.driver ? <Badge tone="green">Found</Badge> : null}
-          </div>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            Issue Traffic Penalty
+          </h1>
+          <p className="mt-1.5 text-slate-400">
+            Verify driver → Select violation → Issue fine & demerit points
+          </p>
         </div>
 
-        {lookedUp?.driver ? (
-          <div className="mt-4 grid md:grid-cols-3 gap-3">
-            <div className="rounded-2xl border p-4 bg-white">
-              <div className="text-xs text-gray-500">Driver</div>
-              <div className="mt-1 font-semibold">
-                {lookedUp.user?.name || "—"}
-              </div>
-              <div className="mt-2 text-sm text-gray-700 space-y-1">
-                <div>
-                  Email:{" "}
-                  <span className="font-medium">
-                    {lookedUp.user?.email || "—"}
-                  </span>
-                </div>
-                <div>
-                  Phone:{" "}
-                  <span className="font-medium">
-                    {lookedUp.user?.phone || "—"}
-                  </span>
-                </div>
-                <div>
-                  NIC:{" "}
-                  <span className="font-medium">
-                    {lookedUp.user?.nic || "—"}
-                  </span>
-                </div>
-              </div>
+        {lookupLoading && <Badge tone="yellow">Searching driver...</Badge>}
+      </div>
+
+      {/* Driver Lookup + Preview Card */}
+      <div className="bg-gradient-to-b from-slate-900/80 to-slate-950/80 backdrop-blur-sm border border-slate-700/60 rounded-xl shadow-xl shadow-black/40 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-950/40">
+          <h2 className="text-lg font-semibold text-indigo-300 flex items-center gap-2.5">
+            <span className="text-xl">👤</span>
+            Driver & License Lookup
+          </h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Enter license number to fetch driver profile & vehicles
+          </p>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                License Number
+              </label>
+              <input
+                value={form.licenseNo}
+                onChange={(e) =>
+                  updateField("licenseNo", e.target.value.toUpperCase())
+                }
+                placeholder="e.g. B12345678"
+                className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all uppercase font-mono tracking-wide"
+              />
+              <p className="mt-1.5 text-xs text-slate-500">
+                Enter full license number • Auto-lookup after 600ms
+              </p>
             </div>
 
-            <div className="rounded-2xl border p-4 bg-white">
-              <div className="text-xs text-gray-500">License</div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="flex items-end gap-3">
+              {lookupLoading && <Badge tone="yellow">Searching...</Badge>}
+              {lookupError && <Badge tone="red">{lookupError}</Badge>}
+              {lookedUp?.driver && !lookupLoading && (
                 <Badge tone={statusTone}>{lookedUp.driver.licenseStatus}</Badge>
-                <Badge tone={pointsTone}>
-                  Points: {lookedUp.driver.currentPoints}
-                </Badge>
-              </div>
-              {lookedUp.driver.licenseStatus === "SUSPENDED" ? (
-                <div className="mt-2 text-sm text-red-700">
-                  Suspended until:{" "}
-                  <b>
-                    {new Date(lookedUp.driver.suspendedUntil).toLocaleString()}
-                  </b>
-                </div>
-              ) : (
-                <div className="mt-2 text-sm text-gray-600">License active</div>
               )}
             </div>
+          </div>
 
-            <div className="rounded-2xl border p-4 bg-white">
-              <div className="text-xs text-gray-500">Vehicles</div>
-              <div className="mt-2 text-sm text-gray-700">
+          {lookedUp?.driver && (
+            <div className="grid md:grid-cols-3 gap-6 pt-4 border-t border-slate-800/60">
+              {/* Driver Info */}
+              <div className="space-y-3">
+                <div className="text-xs text-slate-400 uppercase tracking-wide">
+                  Driver
+                </div>
+                <div className="text-lg font-semibold text-white">
+                  {lookedUp.user?.name || "—"}
+                </div>
+                <div className="text-sm space-y-1 text-slate-300">
+                  <div>
+                    Email:{" "}
+                    <span className="font-mono">
+                      {lookedUp.user?.email || "—"}
+                    </span>
+                  </div>
+                  <div>
+                    Phone:{" "}
+                    <span className="font-mono">
+                      {lookedUp.user?.phone || "—"}
+                    </span>
+                  </div>
+                  <div>
+                    NIC:{" "}
+                    <span className="font-mono uppercase">
+                      {lookedUp.user?.nic || "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* License Status */}
+              <div className="space-y-3">
+                <div className="text-xs text-slate-400 uppercase tracking-wide">
+                  License
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge tone={statusTone}>
+                    {lookedUp.driver.licenseStatus || "Unknown"}
+                  </Badge>
+                  <Badge tone={pointsTone}>
+                    Demerit: {lookedUp.driver.currentPoints ?? 0}
+                  </Badge>
+                </div>
+                {lookedUp.driver.suspendedUntil && (
+                  <div className="text-sm text-red-300 mt-2">
+                    Suspended until:{" "}
+                    <span className="font-medium">
+                      {new Date(
+                        lookedUp.driver.suspendedUntil,
+                      ).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Vehicles */}
+              <div className="space-y-3">
+                <div className="text-xs text-slate-400 uppercase tracking-wide">
+                  Registered Vehicles ({vehicles.length})
+                </div>
                 {vehicles.length === 0 ? (
-                  <div className="text-gray-500">No vehicles registered</div>
+                  <div className="text-sm text-slate-500">
+                    No vehicles found
+                  </div>
                 ) : (
-                  <ul className="space-y-2">
-                    {vehicles.slice(0, 4).map((v) => (
-                      <li
+                  <div className="space-y-3">
+                    {vehicles.slice(0, 3).map((v) => (
+                      <div
                         key={v.id}
-                        className="flex items-center justify-between gap-2"
+                        className="flex justify-between items-center text-sm"
                       >
                         <div>
-                          <div className="font-medium">
-                            {v.plateNo} — {v.type}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {v.model || "—"} • {v.color || "—"} •{" "}
-                            {v.year || "—"}
-                          </div>
+                          <span className="font-mono font-medium text-indigo-300">
+                            {v.plateNo}
+                          </span>{" "}
+                          • {v.type} {v.model ? `(${v.model})` : ""}
                         </div>
                         <Badge tone={v.ownershipVerified ? "green" : "yellow"}>
-                          {v.ownershipVerified ? "Verified" : "Unverified"}
+                          {v.ownershipVerified ? "Verified" : "Pending"}
                         </Badge>
-                      </li>
+                      </div>
                     ))}
-                  </ul>
+                    {vehicles.length > 3 && (
+                      <div className="text-xs text-slate-500">
+                        + {vehicles.length - 3} more...
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
-          </div>
-        ) : null}
-      </Card>
+          )}
+        </div>
+      </div>
 
-      {/* ✅ Penalty Form */}
-      <Card
-        title="Penalty Form"
-        subtitle="Issue penalty after verifying driver details"
-      >
-        <form onSubmit={onSubmit} className="grid md:grid-cols-2 gap-3">
-          {/* Plate choose from vehicles if available */}
-          {vehicles.length > 0 ? (
+      {/* Penalty Issuance Form */}
+      <div className="bg-gradient-to-b from-slate-900/80 to-slate-950/80 backdrop-blur-sm border border-slate-700/60 rounded-xl shadow-xl shadow-black/40 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-950/40">
+          <h2 className="text-lg font-semibold text-indigo-300 flex items-center gap-2.5">
+            <span className="text-xl">⚖️</span>
+            Issue New Penalty
+          </h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Only available after successful driver lookup
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Plate selection */}
             <div>
-              <label className="text-xs text-gray-600">Vehicle Plate</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Vehicle Plate
+              </label>
+              {vehicles.length > 0 ? (
+                <select
+                  value={form.plateNo}
+                  onChange={(e) => updateField("plateNo", e.target.value)}
+                  className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all"
+                >
+                  <option value="">(Select vehicle or leave blank)</option>
+                  {vehicles.map((v) => (
+                    <option key={v.id} value={v.plateNo}>
+                      {v.plateNo} — {v.type} {v.model ? `(${v.model})` : ""}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={form.plateNo}
+                  onChange={(e) =>
+                    updateField("plateNo", e.target.value.toUpperCase())
+                  }
+                  placeholder="e.g. ABC-1234 (optional)"
+                  className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all uppercase font-mono"
+                />
+              )}
+              <p className="mt-1.5 text-xs text-slate-500">
+                Select from registered vehicles or type manually
+              </p>
+            </div>
+
+            {/* Violation Code */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Violation Code
+              </label>
               <select
-                className="w-full border rounded-xl px-3 py-2 mt-1"
-                value={form.plateNo}
-                onChange={(e) => set("plateNo", e.target.value)}
+                required
+                value={form.violationCode}
+                onChange={(e) => updateField("violationCode", e.target.value)}
+                className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all"
               >
-                <option value="">(Select a vehicle)</option>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.plateNo}>
-                    {v.plateNo} — {v.type} {v.model ? `(${v.model})` : ""}
+                <option value="">— Select violation —</option>
+                {violationTypes.map((v) => (
+                  <option key={v.code} value={v.code}>
+                    {v.code} — {v.title} (LKR {v.baseFineLkr}, {v.demeritPoints}{" "}
+                    pts)
                   </option>
                 ))}
               </select>
-              <div className="text-xs text-gray-500 mt-1">
-                You can still type manually if needed.
-              </div>
             </div>
-          ) : (
-            <Input
-              label="Plate No (optional)"
-              value={form.plateNo}
-              onChange={(e) => set("plateNo", e.target.value)}
-              placeholder="e.g., CBM-7663"
-            />
-          )}
 
-          <div className="md:col-span-2">
-            <label className="text-xs text-gray-600">Violation Code</label>
-            <select
-              className="w-full border rounded-xl px-3 py-2 mt-1"
-              value={form.violationCode}
-              onChange={(e) => set("violationCode", e.target.value)}
-            >
-              <option value="">(Select violation)</option>
-              {violationOptions.map((v) => (
-                <option key={v.code} value={v.code}>
-                  {v.code} — {v.title} (LKR {v.baseFineLkr}, Pts{" "}
-                  {v.demeritPoints})
-                </option>
-              ))}
-            </select>
+            {/* Location */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Location / Road
+              </label>
+              <input
+                value={form.locationText}
+                onChange={(e) => updateField("locationText", e.target.value)}
+                placeholder="e.g. Kandy-Colombo Road, Digana"
+                className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all"
+              />
+            </div>
+
+            {/* Occurred At */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Date & Time of Violation
+              </label>
+              <input
+                type="datetime-local"
+                value={form.occurredAt}
+                onChange={(e) => updateField("occurredAt", e.target.value)}
+                className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Additional Notes / Remarks
+              </label>
+              <textarea
+                value={form.notes}
+                onChange={(e) => updateField("notes", e.target.value)}
+                rows={3}
+                placeholder="e.g. Speeding 95 km/h in 60 zone, no seatbelt..."
+                className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all resize-y min-h-[100px]"
+              />
+            </div>
           </div>
 
-          <Input
-            label="Location"
-            value={form.locationText}
-            onChange={(e) => set("locationText", e.target.value)}
-            placeholder="e.g., Negombo Road, Katunayake"
-          />
-          <Input
-            label="Occurred At (ISO)"
-            value={form.occurredAt}
-            onChange={(e) => set("occurredAt", e.target.value)}
-          />
-
-          <div className="md:col-span-2">
-            <Input
-              label="Notes"
-              value={form.notes}
-              onChange={(e) => set("notes", e.target.value)}
-              placeholder="Optional"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <Button
-              className="w-full"
-              disabled={lookupLoading || !lookedUp?.driver}
+          <div className="pt-6 border-t border-slate-800/60">
+            <button
+              type="submit"
+              disabled={
+                lookupLoading || !lookedUp?.driver || !form.violationCode
+              }
+              className={`
+                w-full py-4 px-8 rounded-xl font-semibold text-base
+                transition-all duration-300 shadow-lg flex items-center justify-center gap-3
+                ${
+                  lookupLoading || !lookedUp?.driver || !form.violationCode
+                    ? "bg-slate-700 cursor-not-allowed text-slate-400"
+                    : "bg-red-700 hover:bg-red-600 active:bg-red-800 text-white shadow-red-900/40 hover:shadow-red-800/50"
+                }
+              `}
             >
-              Issue Penalty
-            </Button>
+              {lookupLoading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    />
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                "Issue Penalty"
+              )}
+            </button>
           </div>
         </form>
-      </Card>
+      </div>
     </div>
   );
 }

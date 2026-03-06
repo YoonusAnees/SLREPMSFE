@@ -21,36 +21,27 @@ import OfficerHome from "./pages/officer/OfficerHome";
 import OfficerIssuePenalty from "./pages/officer/OfficerIssuePenalty";
 import OfficerVerifyVehicle from "./pages/officer/OfficerVerifyVehicle";
 import OfficerViolationTypes from "./pages/officer/OfficerViolationTypes";
+
+// Admin
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPenalties from "./pages/admin/AdminPenalties";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminIncidents from "./pages/admin/AdminIncidents";
+
+// Dispatcher
 import DispatcherLayout from "./pages/dispatcher/DispatcherLayout";
 import DispatcherDashboard from "./pages/dispatcher/DispatcherDashboard";
 import DispatcherIncidents from "./pages/dispatcher/DispatcherIncidents";
+
+// Rescue
 import RescueDashboard from "./pages/rescue/RescueDashboard";
 import RescueDispatches from "./pages/rescue/RescueDispatches";
 import RescueLayout from "./pages/rescue/RescueLayout";
 import RescueProfile from "./pages/rescue/RescueProfile";
 import RescueRegister from "./pages/rescue/RescueRegister";
 import Register from "./pages/auth/Register";
-
-// Admin
-// import AdminLayout from "../pages/admin/AdminLayout";
-// import AdminHome from "../pages/admin/AdminHome";
-// import AdminUsers from "../pages/admin/AdminUsers";
-
-// Dispatcher
-// import DispatcherLayout from "../pages/dispatcher/DispatcherLayout";
-// import DispatchCenter from "../pages/dispatcher/DispatchCenter";
-
-// Rescue
-// import RescueLayout from "../pages/rescue/RescueLayout";
-// import RescueRegister from "../pages/rescue/RescueRegister";
-// import RescueMe from "../pages/rescue/RescueMe";
-// import RescueDispatches from "../pages/rescue/RescueDispatches";
 
 export default function App() {
   return (
