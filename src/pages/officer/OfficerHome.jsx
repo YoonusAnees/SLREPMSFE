@@ -51,12 +51,16 @@ export default function OfficerHome() {
 
             <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
               <span className="text-slate-400">Verify Vehicle</span>
-              <span className="font-medium text-green-400">Ownership check</span>
+              <span className="font-medium text-green-400">
+                Ownership check
+              </span>
             </div>
 
             <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
               <span className="text-slate-400">Violation Catalog</span>
-              <span className="font-medium text-amber-300">View / manage types</span>
+              <span className="font-medium text-amber-300">
+                View / manage types
+              </span>
             </div>
 
             <div className="pt-3">

@@ -26,10 +26,14 @@ export default function DriverIncidents() {
     severity: "",
     locationText: "",
     description: "",
+    plateNo: "",
+    suspectedViolationCode: "",
   });
 
   const [file, setFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [vehiclePreview, setVehiclePreview] = useState(null);
+  const [checkingVehicle, setCheckingVehicle] = useState(false);
 
   const cityObj = useMemo(
     () => SL_CITIES.find((c) => c.name === city) || defaultCity,
@@ -40,7 +44,19 @@ export default function DriverIncidents() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Reverse geocoding
+  const needsPlateField = useMemo(() => {
+    const desc = form.description.toLowerCase();
+
+    return (
+      form.suspectedViolationCode === "DRUNK_DRIVE" ||
+      form.suspectedViolationCode === "RECKLESS_DRIVING" ||
+      desc.includes("drunk") ||
+      desc.includes("drunken") ||
+      desc.includes("drink drive") ||
+      desc.includes("reckless")
+    );
+  }, [form.description, form.suspectedViolationCode]);
+
   async function fetchReverseGeocode(lat, lng) {
     try {
       const res = await fetch(
@@ -56,6 +72,7 @@ export default function DriverIncidents() {
 
   useEffect(() => {
     let isMounted = true;
+
     const update = async () => {
       const lat = Number(point.lat);
       const lng = Number(point.lng);
@@ -66,12 +83,32 @@ export default function DriverIncidents() {
         updateField("locationText", addr || cityObj.name);
       }
     };
+
     update();
 
     return () => {
       isMounted = false;
     };
   }, [point.lat, point.lng, cityObj.name]);
+
+  async function lookupVehicle(plateNo) {
+    if (!plateNo?.trim()) {
+      setVehiclePreview(null);
+      return;
+    }
+
+    try {
+      setCheckingVehicle(true);
+      const res = await http.get(
+        `/vehicles/by-plate/${encodeURIComponent(plateNo)}`,
+      );
+      setVehiclePreview(res.data);
+    } catch {
+      setVehiclePreview(null);
+    } finally {
+      setCheckingVehicle(false);
+    }
+  }
 
   async function uploadEvidence() {
     if (!file) return null;
@@ -84,7 +121,7 @@ export default function DriverIncidents() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       return res.data.url;
-    } catch (err) {
+    } catch {
       toast("error", "Failed to upload photo");
       return null;
     }
@@ -102,11 +139,19 @@ export default function DriverIncidents() {
 
       if (!form.type || !form.severity) {
         toast("error", "Type and severity are required");
+        setIsSubmitting(false);
         return;
       }
 
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         toast("error", "Please select a valid location on the map");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (needsPlateField && !form.plateNo.trim()) {
+        toast("error", "Please enter vehicle number plate");
+        setIsSubmitting(false);
         return;
       }
 
@@ -120,19 +165,30 @@ export default function DriverIncidents() {
         description: form.description.trim() || undefined,
         locationText: form.locationText.trim() || cityObj.name,
         evidence: evidenceUrl || null,
+        plateNo: form.plateNo.trim() || undefined,
+        suspectedViolationCode: form.suspectedViolationCode || undefined,
       };
 
-      await createIncident(payload);
-      toast("success", "Incident reported successfully");
+      const result = await createIncident(payload);
 
-      // Reset form
+      if (result?.autoPenalty) {
+        toast("success", "Incident created and penalty auto-issued");
+      } else if (result?.requiresOfficerReview) {
+        toast("success", "Incident reported. Officer review required");
+      } else {
+        toast("success", "Incident reported successfully");
+      }
+
       setForm({
         type: "",
         severity: "",
         locationText: "",
         description: "",
+        plateNo: "",
+        suspectedViolationCode: "",
       });
       setFile(null);
+      setVehiclePreview(null);
     } catch (err) {
       toast("error", err?.response?.data?.message || "Failed to submit report");
     } finally {
@@ -142,7 +198,6 @@ export default function DriverIncidents() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
           Report Road Incident
@@ -153,7 +208,6 @@ export default function DriverIncidents() {
         </p>
       </div>
 
-      {/* Main Card */}
       <div className="bg-gradient-to-b from-slate-900/80 to-slate-950/80 backdrop-blur-sm border border-slate-700/60 rounded-xl shadow-2xl shadow-black/40 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-700/50 bg-gradient-to-r from-red-950/30 via-slate-950/40 to-red-950/30">
           <h2 className="text-xl font-semibold text-red-300 flex items-center gap-3">
@@ -167,7 +221,6 @@ export default function DriverIncidents() {
 
         <div className="p-6 lg:p-8">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-10">
-            {/* LEFT – Map & Location */}
             <div className="space-y-6">
               <div className="grid sm:grid-cols-2 gap-5">
                 <div>
@@ -235,7 +288,6 @@ export default function DriverIncidents() {
               </div>
             </div>
 
-            {/* RIGHT – Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid sm:grid-cols-2 gap-5">
                 <div>
@@ -249,18 +301,13 @@ export default function DriverIncidents() {
                     className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
                   >
                     <option value="">— Select type —</option>
-                    {[
-                      "ACCIDENT",
-                      "BREAKDOWN",
-                      "MEDICAL EMERGENCY",
-                      "FIRE",
-                      "HAZARD",
-                      "OTHER",
-                    ].map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
+                    {["ACCIDENT", "BREAKDOWN", "MEDICAL", "FIRE", "OTHER"].map(
+                      (t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ),
+                    )}
                   </select>
                 </div>
 
@@ -276,13 +323,7 @@ export default function DriverIncidents() {
                   >
                     <option value="">— Select level —</option>
                     {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((s) => (
-                      <option
-                        key={s}
-                        value={s}
-                        className={
-                          s === "CRITICAL" ? "text-red-400 font-medium" : ""
-                        }
-                      >
+                      <option key={s} value={s}>
                         {s}
                       </option>
                     ))}
@@ -292,7 +333,80 @@ export default function DriverIncidents() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                  Location Description (auto-filled)
+                  Suspected Violation
+                </label>
+                <select
+                  value={form.suspectedViolationCode}
+                  onChange={(e) =>
+                    updateField("suspectedViolationCode", e.target.value)
+                  }
+                  className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white"
+                >
+                  <option value="">— None / not sure —</option>
+                  <option value="DRUNK_DRIVE">Drunken Driving</option>
+                  <option value="RECKLESS_DRIVING">Reckless Driving</option>
+                  <option value="NO_HELMET">No Helmet</option>
+                  <option value="RED_LIGHT_VIOLATION">
+                    Red Light Violation
+                  </option>
+                </select>
+              </div>
+
+              {needsPlateField && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Vehicle Number Plate
+                    </label>
+                    <input
+                      value={form.plateNo}
+                      onChange={(e) => updateField("plateNo", e.target.value)}
+                      onBlur={() => lookupVehicle(form.plateNo)}
+                      placeholder="Enter vehicle plate number"
+                      className="w-full px-4 py-3.5 bg-slate-800/70 border border-slate-600 rounded-lg text-white"
+                    />
+                  </div>
+
+                  {checkingVehicle && (
+                    <p className="text-sm text-slate-400">
+                      Checking vehicle details...
+                    </p>
+                  )}
+
+                  {vehiclePreview && (
+                    <div className="rounded-lg border border-emerald-700/40 bg-emerald-950/20 p-4 text-sm text-slate-200">
+                      <h4 className="font-semibold text-emerald-300 mb-2">
+                        Registered Vehicle Found
+                      </h4>
+                      <div>Plate: {vehiclePreview.plateNo}</div>
+                      <div>Type: {vehiclePreview.type}</div>
+                      <div>Model: {vehiclePreview.model || "-"}</div>
+                      <div>Color: {vehiclePreview.color || "-"}</div>
+                      <div>Year: {vehiclePreview.year || "-"}</div>
+                      <div>
+                        Owner: {vehiclePreview?.driver?.user?.name || "-"}
+                      </div>
+                      <div>
+                        License No: {vehiclePreview?.driver?.licenseNo || "-"}
+                      </div>
+                      <div>
+                        License Status:{" "}
+                        {vehiclePreview?.driver?.licenseStatus || "-"}
+                      </div>
+                    </div>
+                  )}
+
+                  {!checkingVehicle && form.plateNo && !vehiclePreview && (
+                    <p className="text-sm text-amber-400">
+                      No registered vehicle found for this plate number
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Location Description
                 </label>
                 <input
                   value={form.locationText}
@@ -319,19 +433,12 @@ export default function DriverIncidents() {
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Photo / Evidence (optional)
                 </label>
-                <div className="mt-1">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    className="block w-full text-sm text-slate-400
-                      file:mr-4 file:py-2.5 file:px-5 file:rounded-lg
-                      file:border-0 file:text-sm file:font-medium
-                      file:bg-red-900/40 file:text-red-200
-                      hover:file:bg-red-800/50 file:transition-colors
-                      file:cursor-pointer cursor-pointer"
-                  />
-                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="block w-full text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-red-900/40 file:text-red-200 hover:file:bg-red-800/50 file:transition-colors file:cursor-pointer cursor-pointer"
+                />
                 {file && (
                   <p className="mt-2 text-xs text-slate-400">
                     Selected: {file.name}
@@ -342,39 +449,15 @@ export default function DriverIncidents() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`
-                  w-full py-3.5 px-6 rounded-xl font-semibold text-base
-                  transition-all duration-300 shadow-lg
-                  ${
-                    isSubmitting
-                      ? "bg-slate-700 cursor-not-allowed text-slate-400"
-                      : "bg-red-700 hover:bg-red-600 active:bg-red-800 text-white shadow-red-900/40 hover:shadow-red-800/50"
-                  }
-                `}
+                className={`w-full py-3.5 px-6 rounded-xl font-semibold text-base transition-all duration-300 shadow-lg ${
+                  isSubmitting
+                    ? "bg-slate-700 cursor-not-allowed text-slate-400"
+                    : "bg-red-700 hover:bg-red-600 active:bg-red-800 text-white shadow-red-900/40 hover:shadow-red-800/50"
+                }`}
               >
-                {isSubmitting ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8z"
-                      />
-                    </svg>
-                    Submitting Report...
-                  </div>
-                ) : (
-                  "Submit Incident Report"
-                )}
+                {isSubmitting
+                  ? "Submitting Report..."
+                  : "Submit Incident Report"}
               </button>
             </form>
           </div>

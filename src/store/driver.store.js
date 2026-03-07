@@ -89,7 +89,7 @@ export const useDriverStore = create((set, get) => ({
                     http.get("/drivers/me"),
                     http.get("/vehicles/my"),
                     http.get("/penalties/my"),
-                    http.get("/incidents/me"),
+                    http.get("/incidents/my"),
                 ]);
 
             const me =

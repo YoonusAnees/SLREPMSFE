@@ -42,6 +42,8 @@ import RescueLayout from "./pages/rescue/RescueLayout";
 import RescueProfile from "./pages/rescue/RescueProfile";
 import RescueRegister from "./pages/rescue/RescueRegister";
 import Register from "./pages/auth/Register";
+import OfficerIncidentCreate from "./pages/officer/OfficerIncidentCreate";
+import IncidentReviewPage from "./pages/officer/IncidentReviewPage";
 
 export default function App() {
   return (
@@ -88,6 +90,8 @@ export default function App() {
             <Route path="issue-penalty" element={<OfficerIssuePenalty />} />
             <Route path="verify-vehicle" element={<OfficerVerifyVehicle />} />
             <Route path="violation-types" element={<OfficerViolationTypes />} />
+            <Route path="incidents" element={<OfficerIncidentCreate />} />
+            <Route path="incident-review" element={<IncidentReviewPage />} />
           </Route>
 
           {/* Admin */}
