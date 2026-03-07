@@ -4,59 +4,36 @@ import { getDriverByLicense } from "../api/drivers";
 
 export const useOfficerStore = create((set) => ({
     violationTypes: [],
+    incidents: [],
+    officerDashboard: null,
 
-    // lookup state
     lookupLoading: false,
     lookupError: "",
-    lookedUp: null, // { user, driver, vehicles }
+    lookedUp: null,
 
-    // dashboard state
-    incidents: [],
-    penalties: [],
     dashboardLoading: false,
     dashboardError: "",
-
-    loadViolationTypes: async () => {
-        try {
-            const { data } = await http.get("/violationTypes/get");
-            set({ violationTypes: Array.isArray(data) ? data : [] });
-            return data;
-        } catch (e) {
-            throw e;
-        }
-    },
 
     loadOfficerDashboard: async () => {
         set({ dashboardLoading: true, dashboardError: "" });
 
         try {
-            const [violationsRes, incidentsRes] = await Promise.all([
-                http.get("/violationTypes/get"),
-                http.get("/incidents"),
-            ]);
-
-            let penaltiesData = [];
-            try {
-                // only if you later create officer-specific endpoint
-                const penaltiesRes = await http.get("/admin/penalties");
-                penaltiesData = Array.isArray(penaltiesRes.data) ? penaltiesRes.data : [];
-            } catch {
-                penaltiesData = [];
-            }
+            const [{ data: dashboard }, { data: violations }, { data: incidents }] =
+                await Promise.all([
+                    http.get("/officer/dashboard/me"),
+                    http.get("/violationTypes/get"),
+                    http.get("/incidents"),
+                ]);
 
             set({
-                violationTypes: Array.isArray(violationsRes.data) ? violationsRes.data : [],
-                incidents: Array.isArray(incidentsRes.data) ? incidentsRes.data : [],
-                penalties: penaltiesData,
+                officerDashboard: dashboard,
+                violationTypes: Array.isArray(violations) ? violations : [],
+                incidents: Array.isArray(incidents) ? incidents : [],
                 dashboardLoading: false,
                 dashboardError: "",
             });
 
-            return {
-                violationTypes: violationsRes.data,
-                incidents: incidentsRes.data,
-                penalties: penaltiesData,
-            };
+            return dashboard;
         } catch (e) {
             set({
                 dashboardLoading: false,
@@ -73,9 +50,7 @@ export const useOfficerStore = create((set) => ({
     },
 
     verifyVehicle: async (plateNo) => {
-        const { data } = await http.post(
-            `/vehicles/verify/${encodeURIComponent(plateNo)}`
-        );
+        const { data } = await http.post(`/vehicles/verify/${encodeURIComponent(plateNo)}`);
         return data;
     },
 
@@ -83,11 +58,7 @@ export const useOfficerStore = create((set) => ({
         const lic = (licenseNo || "").trim();
 
         if (lic.length < 5) {
-            set({
-                lookedUp: null,
-                lookupError: "",
-                lookupLoading: false,
-            });
+            set({ lookedUp: null, lookupError: "", lookupLoading: false });
             return null;
         }
 
@@ -95,27 +66,15 @@ export const useOfficerStore = create((set) => ({
 
         try {
             const data = await getDriverByLicense(lic);
-            set({
-                lookedUp: data,
-                lookupLoading: false,
-                lookupError: "",
-            });
+            set({ lookedUp: data, lookupLoading: false, lookupError: "" });
             return data;
         } catch (e) {
             const msg = e?.response?.data?.message || "Driver lookup failed";
-            set({
-                lookedUp: null,
-                lookupLoading: false,
-                lookupError: msg,
-            });
+            set({ lookedUp: null, lookupLoading: false, lookupError: msg });
             throw e;
         }
     },
 
     clearLookup: () =>
-        set({
-            lookedUp: null,
-            lookupError: "",
-            lookupLoading: false,
-        }),
+        set({ lookedUp: null, lookupError: "", lookupLoading: false }),
 }));
