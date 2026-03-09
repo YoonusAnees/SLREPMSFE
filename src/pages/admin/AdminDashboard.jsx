@@ -165,7 +165,7 @@ export default function AdminDashboard() {
           color="green"
         />
         <StatCard
-          label="Total Revenue (LKR)"
+          label="Total Paid (LKR)"
           value={money(kpi.revenueLkr)}
           badge="Collected"
           color="indigo"

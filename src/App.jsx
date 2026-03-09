@@ -2,9 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./router/ProtectedRoute";
 import ToastHost from "./components/ToastHost";
 import LoadingOverlay from "./components/LoadingOverlay";
-import Login from "./pages/auth/Login";
-import RoleRedirect from "./router/RoleRedirect";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import RoleRedirect from "./router/RoleRedirect";
 
 // Driver
 import DriverLayout from "./pages/driver/DriverLayout";
@@ -21,6 +23,8 @@ import OfficerHome from "./pages/officer/OfficerHome";
 import OfficerIssuePenalty from "./pages/officer/OfficerIssuePenalty";
 import OfficerVerifyVehicle from "./pages/officer/OfficerVerifyVehicle";
 import OfficerViolationTypes from "./pages/officer/OfficerViolationTypes";
+import OfficerIncidentCreate from "./pages/officer/OfficerIncidentCreate";
+import IncidentReviewPage from "./pages/officer/IncidentReviewPage";
 
 // Admin
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -41,9 +45,14 @@ import RescueDispatches from "./pages/rescue/RescueDispatches";
 import RescueLayout from "./pages/rescue/RescueLayout";
 import RescueProfile from "./pages/rescue/RescueProfile";
 import RescueRegister from "./pages/rescue/RescueRegister";
-import Register from "./pages/auth/Register";
-import OfficerIncidentCreate from "./pages/officer/OfficerIncidentCreate";
-import IncidentReviewPage from "./pages/officer/IncidentReviewPage";
+
+import PublicLayout from "./pages/public/PublicLayout";
+import HomePage from "./pages/public/HomePage";
+import PrivacyPolicyPage from "./pages/public/PrivacyPolicyPage";
+import PublicIncidentReportPage from "./pages/public/PublicIncidentReportPage";
+import StatisticsPage from "./pages/public/StatisticsPage";
+import RoadSafetyPage from "./pages/public/RoadSafetyPage";
+import EmergencyInfoPage from "./pages/public/EmergencyInfoPage";
 
 export default function App() {
   return (
@@ -53,12 +62,23 @@ export default function App() {
         <LoadingOverlay />
 
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/role" element={<RoleRedirect />} />
+          {/* PUBLIC LAYOUT */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route
+              path="/report-incident"
+              element={<PublicIncidentReportPage />}
+            />
+            <Route path="/statistics" element={<StatisticsPage />} />
+            <Route path="/road-safety" element={<RoadSafetyPage />} />
+            <Route path="/emergency" element={<EmergencyInfoPage />} />
 
-          {/* Rescue register public */}
-          {/* <Route path="/rescue/register" element={<RescueRegister />} /> */}
+            {/* auth */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/role" element={<RoleRedirect />} />
+          </Route>
 
           {/* Driver */}
           <Route
@@ -138,8 +158,7 @@ export default function App() {
             <Route path="profile" element={<RescueProfile />} />
           </Route>
 
-          <Route path="/" element={<Navigate to="/role" replace />} />
-          <Route path="*" element={<Navigate to="/role" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </ErrorBoundary>

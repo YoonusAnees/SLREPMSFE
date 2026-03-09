@@ -7,26 +7,38 @@ export default function DriverProfile() {
   const authUser = useAuthStore((s) => s.user);
   const updateMyUser = useDriverStore((s) => s.updateMyUser);
   const upsertMe = useDriverStore((s) => s.upsertMe);
+  const driverMe = useDriverStore((s) => s.me);
+  const loadMe = useDriverStore((s) => s.loadMe);
   const toast = useUIStore((s) => s.toast);
 
   const [form, setForm] = useState({
     name: authUser?.name || "",
     phone: authUser?.phone || "",
     nic: authUser?.nic || "",
-    licenseNo: authUser?.licenseNo || "",
+    licenseNo: driverMe?.licenseNo || "",
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [isAddingLicense, setIsAddingLicense] = useState(false);
 
   useEffect(() => {
+    loadMe().catch(() => {});
+  }, [loadMe]);
+
+  useEffect(() => {
     setForm({
       name: authUser?.name || "",
       phone: authUser?.phone || "",
       nic: authUser?.nic || "",
-      licenseNo: authUser?.licenseNo || "",
+      licenseNo: driverMe?.licenseNo || "",
     });
-  }, [authUser?.id]);
+  }, [
+    authUser?.id,
+    authUser?.name,
+    authUser?.phone,
+    authUser?.nic,
+    driverMe?.licenseNo,
+  ]);
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -78,7 +90,7 @@ export default function DriverProfile() {
     }
   }
 
-  const hasLicense = !!authUser?.licenseNo;
+  const hasLicense = !!driverMe?.licenseNo;
 
   return (
     <div className="space-y-8">
@@ -219,7 +231,7 @@ export default function DriverProfile() {
               <div className="text-4xl opacity-80">🪪</div>
               <div>
                 <div className="text-lg font-semibold text-white">
-                  {authUser.licenseNo}
+                  {driverMe.licenseNo}
                 </div>
                 <div className="text-sm text-slate-400 mt-1">
                   Registered to: {authUser.name || "—"}
