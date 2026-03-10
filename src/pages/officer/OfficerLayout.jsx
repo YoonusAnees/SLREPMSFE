@@ -8,8 +8,8 @@ export default function OfficerLayout() {
     { to: "/officer", label: "Dashboard", icon: "📊", end: true },
     { to: "/officer/issue-penalty", label: "Issue Penalty", icon: "⚖️" },
     { to: "/officer/verify-vehicle", label: "Verify Vehicle", icon: "🚗" },
-    { to: "/officer/violation-types", label: "Violation Types", icon: "📋" },
-    { to: "/officer/incidents", label: "Incidents", icon: "📋" },
+    { to: "/officer/violation-types", label: "Violation Types", icon: "⚠️" },
+    { to: "/officer/incidents", label: "Incidents", icon: "🚨" },
     { to: "/officer/incident-review", label: "Incident Review", icon: "📋" },
   ];
 

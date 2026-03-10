@@ -23,6 +23,56 @@ function StatCard({ title, value }) {
   );
 }
 
+function Badge({ children, tone = "gray" }) {
+  const tones = {
+    gray: "bg-slate-800/70 text-slate-300 border-slate-600/60",
+    red: "bg-red-900/40 text-red-300 border-red-700/50",
+    yellow: "bg-amber-900/40 text-amber-300 border-amber-700/50",
+    green: "bg-green-900/40 text-green-300 border-green-700/50",
+    blue: "bg-cyan-900/40 text-cyan-300 border-cyan-700/50",
+    purple: "bg-violet-900/40 text-violet-300 border-violet-700/50",
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${tones[tone] || tones.gray}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function getSeverityTone(severity) {
+  const s = String(severity || "").toUpperCase();
+
+  if (s === "HIGH" || s === "CRITICAL") return "red";
+  if (s === "MEDIUM" || s === "MODERATE") return "yellow";
+  if (s === "LOW") return "green";
+  return "gray";
+}
+
+function getIncidentStatusTone(status) {
+  const s = String(status || "").toUpperCase();
+
+  if (s === "NEW") return "red";
+  if (s === "DISPATCHED") return "blue";
+  if (s === "RESOLVED") return "green";
+  if (s === "CANCELLED") return "gray";
+  if (s === "IN_PROGRESS") return "yellow";
+  return "gray";
+}
+
+function getDispatchStatusTone(status) {
+  const s = String(status || "").toUpperCase();
+
+  if (s === "PENDING") return "yellow";
+  if (s === "EN_ROUTE") return "blue";
+  if (s === "ON_SCENE") return "purple";
+  if (s === "COMPLETED") return "green";
+  if (s === "CANCELLED") return "gray";
+  return "gray";
+}
+
 export default function DispatcherDashboard() {
   const toast = useUIStore((s) => s.toast);
 
@@ -144,17 +194,25 @@ export default function DispatcherDashboard() {
                     hover:border-cyan-700/50 transition-colors
                   "
                 >
-                  <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <div className="font-medium text-slate-100 capitalize">
                       {i.type?.toLowerCase() || "Incident"}
                     </div>
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-slate-800/70 border border-slate-600">
-                      {i.severity || "Unknown"}
-                    </span>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge tone={getSeverityTone(i.severity)}>
+                        {i.severity || "Unknown Severity"}
+                      </Badge>
+                      <Badge tone={getIncidentStatusTone(i.status)}>
+                        {i.status || "Unknown Status"}
+                      </Badge>
+                    </div>
                   </div>
+
                   <div className="text-sm text-slate-300 line-clamp-1">
                     {i.locationText || "—"}
                   </div>
+
                   <div className="text-xs text-slate-500 mt-2">
                     {new Date(i.createdAt).toLocaleString()}
                   </div>
@@ -200,17 +258,27 @@ export default function DispatcherDashboard() {
                     hover:border-cyan-700/50 transition-colors
                   "
                 >
-                  <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <div className="font-medium text-slate-100 capitalize">
                       {d.incident?.type?.toLowerCase() || "Incident"}
                     </div>
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-slate-800/70 border border-slate-600">
-                      {d.status.replace(/_/g, " ")}
-                    </span>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {d.incident?.severity && (
+                        <Badge tone={getSeverityTone(d.incident.severity)}>
+                          {d.incident.severity}
+                        </Badge>
+                      )}
+                      <Badge tone={getDispatchStatusTone(d.status)}>
+                        {String(d.status || "UNKNOWN").replace(/_/g, " ")}
+                      </Badge>
+                    </div>
                   </div>
+
                   <div className="text-sm text-slate-300">
                     Team: {d.rescueTeam?.name || d.rescueTeam?.code || "—"}
                   </div>
+
                   <div className="text-xs text-slate-500 mt-2">
                     {new Date(d.createdAt).toLocaleString()}
                   </div>

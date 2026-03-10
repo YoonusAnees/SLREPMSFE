@@ -77,4 +77,9 @@ export const useOfficerStore = create((set) => ({
 
     clearLookup: () =>
         set({ lookedUp: null, lookupError: "", lookupLoading: false }),
+
+    loadViolationTypes: async () => {
+        const { data } = await http.get("/violationTypes/get");
+        set({ violationTypes: data });
+    },
 }));
