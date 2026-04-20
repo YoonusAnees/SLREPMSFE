@@ -25,8 +25,26 @@ export default function Login() {
       toast("success", "Authentication successful");
       navigate("/role");
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Login failed. Please try again.";
+      let msg = "Login failed. Please try again.";
+      const backendMsg = err?.response?.data?.message || err?.response?.data?.errors;
+      
+      if (Array.isArray(backendMsg)) {
+        msg = backendMsg.map(e => e.message).join(", ") || msg;
+      } else if (typeof backendMsg === "string") {
+        if (backendMsg.startsWith("[") && backendMsg.endsWith("]")) {
+          try {
+            const parsed = JSON.parse(backendMsg);
+            if (Array.isArray(parsed)) {
+              msg = parsed.map(e => e.message).join(", ") || msg;
+            }
+          } catch {
+            msg = backendMsg;
+          }
+        } else {
+          msg = backendMsg;
+        }
+      }
+
       toast("error", msg);
     } finally {
       setIsSubmitting(false);

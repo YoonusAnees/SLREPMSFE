@@ -27,7 +27,14 @@ http.interceptors.response.use(
     (res) => res,
     async (error) => {
         const original = error.config;
-        if (error?.response?.status !== 401 || original?._retry) return Promise.reject(error);
+        if (
+            error?.response?.status !== 401 || 
+            original?._retry || 
+            original?.url?.includes("/auth/login") || 
+            original?.url?.includes("/auth/register")
+        ) {
+            return Promise.reject(error);
+        }
 
         const { refreshToken } = useAuthStore.getState();
         if (!refreshToken) {
