@@ -1,4 +1,4 @@
-#root {
+/* #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
@@ -39,4 +39,14 @@
 
 .read-the-docs {
   color: #888;
+} */
+
+@layer utilities {
+  .animate-pulse-slow {
+    animation: pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .delay-1000 {
+    animation-delay: 1s;
+  }
 }
