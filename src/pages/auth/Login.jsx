@@ -21,18 +21,23 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      toast("success", "Authentication successful");
-      navigate("/role");
-    } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Login failed. Please try again.";
-      toast("error", msg);
-    } finally {
-      setIsSubmitting(false);
-      setLoading(false);
-    }
+  await login(email, password);
+  toast("success", "Authentication successful");
+  navigate("/role");
+} catch (err) {
+  let msg = "Something went wrong";
+
+  if (err?.response?.status === 401) {
+    msg = "Invalid email or password";
+  } else if (!err?.response) {
+    msg = "Network error. Check your connection";
   }
+
+  toast("error", msg);
+} finally {
+  setIsSubmitting(false);
+  setLoading(false);
+}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
